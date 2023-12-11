@@ -11,9 +11,9 @@ POLL_SECONDS = int(os.getenv('POLL_SECONDS'))
 HTTP_PORT = int(os.getenv('HTTP_PORT'))
 
 # Define a Gauge metric to track peggo event lag
-peggo_EVENT_LAG = Gauge('peggo_event_lag', 'Peggo event lag')
-peggo_NETWORK_NONCE = Gauge('peggo_network_nonce', 'Injective network current peggo nonce')
-peggo_ORCHESTRATOR_NONCE = Gauge('peggo_orchestrator_nonce', 'Peggo orchestrator nonce')
+PEGGO_EVENT_LAG = Gauge('peggo_event_lag', 'Peggo event lag')
+PEGGO_NETWORK_NONCE = Gauge('peggo_network_nonce', 'Injective network current peggo nonce')
+PEGGO_ORCHESTRATOR_NONCE = Gauge('peggo_orchestrator_nonce', 'Peggo orchestrator nonce')
 
 def process_request():
     node_addr = NODE_URL
@@ -26,9 +26,9 @@ def process_request():
 
     event_lag = network_nonce - orchestrator_nonce
 
-    peggo_EVENT_LAG.set(event_lag)
-    peggo_NETWORK_NONCE.set(network_nonce)
-    peggo_ORCHESTRATOR_NONCE.set(orchestrator_nonce)
+    PEGGO_EVENT_LAG.set(event_lag)
+    PEGGO_NETWORK_NONCE.set(network_nonce)
+    PEGGO_ORCHESTRATOR_NONCE.set(orchestrator_nonce)
 
 def main():
     start_http_server(HTTP_PORT)
