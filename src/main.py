@@ -18,10 +18,10 @@ PEGGO_ORCHESTRATOR_NONCE = Gauge('peggo_orchestrator_nonce', 'Peggo orchestrator
 def process_request():
     node_addr = NODE_URL
 
-    r = requests.get(f'{node_addr}/peggo/v1/module_state')
+    r = requests.get(f'{node_addr}/peggy/v1/module_state')
     network_nonce = int(r.json()['state']['last_observed_nonce'])
 
-    r = requests.get(f'{node_addr}/peggo/v1/oracle/event/{ORCHESTRATOR_ADDR}')
+    r = requests.get(f'{node_addr}/peggy/v1/oracle/event/{ORCHESTRATOR_ADDR}')
     orchestrator_nonce = int(r.json()['last_claim_event']['ethereum_event_nonce'])
 
     event_lag = network_nonce - orchestrator_nonce
