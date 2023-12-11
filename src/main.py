@@ -30,9 +30,16 @@ def process_request():
     PEGGY_NETWORK_NONCE.set(network_nonce)
     PEGGY_ORCHESTRATOR_NONCE.set(orchestrator_nonce)
 
-if __name__ == '__main__':
+def main():
     start_http_server(HTTP_PORT)
 
     while True:
         process_request()
         time.sleep(POLL_SECONDS)
+
+if __name__ == '__main__':
+    print(f'Polling {NODE_URL} every {POLL_SECONDS} seconds')
+    print(f'On port {HTTP_PORT}')
+    print(f'Orchestator {ORCHESTRATOR_ADDR}')
+
+    main()

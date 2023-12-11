@@ -1,5 +1,5 @@
 # The base image we want to inherit from
-FROM python:3.11.5-buster AS app
+FROM python:3.11.4-buster AS app
 
 # set work directory
 WORKDIR /app
@@ -17,31 +17,20 @@ ENV PYTHONFAULTHANDLER=1 \
     POETRY_HOME="/opt/poetry"
 
 # System deps:
-RUN apt update && apt install --no-install-recommends -y \
-    bash build-essential curl gettext git libpq-dev wget cron \
-    # Cleaning cache:
-    && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man \
-    && apt-get clean \
-    # Install poetry:
-    && pip install "poetry==$POETRY_VERSION" && poetry --version
+RUN pip install "poetry==$POETRY_VERSION" && poetry --version
 
 COPY pyproject.toml poetry.lock /app/
-RUN --mount=type=cache,target=/home/.cache/pypoetry/cache \
-    --mount=type=cache,target=/home/.cache/pypoetry/artifacts \
-    poetry install --no-root
+RUN poetry install --no-root --no-dev
 
-COPY bin/ ./bin
-RUN chmod +x bin/*
-
-ARG DEBUG
-ENV DEBUG="${DEBUG}" \
-    PYTHONUNBUFFERED="True" \
+ENV PYTHONUNBUFFERED="True" \
     PYTHONPATH="."
 
 COPY . .
 
 WORKDIR /app/src
 
-EXPOSE 8000
+ARG HTTP_PORT
+ENV HTTP_PORT=${HTTP_PORT}
+EXPOSE ${HTTP_PORT}
 
-CMD ["poetry", "run", "python3", "src/main.py"]
+CMD ["python3", "main.py"]
