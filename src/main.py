@@ -15,6 +15,7 @@ HTTP_PORT = int(os.getenv("HTTP_PORT"))
 PEGGO_EVENT_LAG = Gauge("peggo_event_lag", "Peggo event lag", ["orchestrator_address"])
 PEGGO_NETWORK_NONCE = Gauge("peggo_network_nonce", "Injective network current peggo nonce", ["orchestrator_address"])
 PEGGO_ORCHESTRATOR_NONCE = Gauge("peggo_orchestrator_nonce", "Peggo orchestrator nonce", ["orchestrator_address"])
+PEGGO_ORCHESTRATOR_BALANCE= Gauge("peggo_orchestrator_balance", "Peggo orchestrator INJ balance", ["orchestrator_address"])
 
 
 def process_request():
@@ -24,11 +25,16 @@ def process_request():
     r = requests.get(f"{NODE_URL}/peggy/v1/oracle/event/{ORCHESTRATOR_ADDR}")
     orchestrator_nonce = int(r.json()["last_claim_event"]["ethereum_event_nonce"])
 
+    r = requests.get(f"{NODE_URL}/cosmos/bank/v1beta1/balances/{ORCHESTRATOR_ADDR}/by_denom?denom=inj")
+    inj_balance = int(r.json()["balance"]["amount"])
+    inj_balance = float(inj_balance) / 10**18
+
     event_lag = network_nonce - orchestrator_nonce
 
     PEGGO_EVENT_LAG.labels(ORCHESTRATOR_ADDR).set(event_lag)
     PEGGO_NETWORK_NONCE.labels(ORCHESTRATOR_ADDR).set(network_nonce)
     PEGGO_ORCHESTRATOR_NONCE.labels(ORCHESTRATOR_ADDR).set(orchestrator_nonce)
+    PEGGO_ORCHESTRATOR_BALANCE.labels(ORCHESTRATOR_ADDR).set(inj_balance)
 
 
 def main():
