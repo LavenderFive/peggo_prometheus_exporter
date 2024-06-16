@@ -8,13 +8,14 @@ from retry import retry
 
 load_dotenv()
 NODE_URL = os.getenv("NODE_URL")
-ORCHESTRATOR_ADDR = os.getenv("ORCHESTRATOR_ADDRESS")
+ORCHESTRATOR_ADDR_STR = os.getenv("ORCHESTRATOR_ADDRESS")
+ORCHESTRATOR_ADDR_ARRAY = ORCHESTRATOR_ADDR_STR.split(',') if ORCHESTRATOR_ADDR_STR else []
 POLL_SECONDS = int(os.getenv("POLL_SECONDS"))
 HTTP_PORT = int(os.getenv("HTTP_PORT"))
 
 # Define a Gauge metric to track peggo event lag
 PEGGO_EVENT_LAG = Gauge("peggo_event_lag", "Peggo event lag", ["orchestrator_address"])
-PEGGO_NETWORK_NONCE = Gauge("peggo_network_nonce", "Injective network current peggo nonce", ["orchestrator_address"])
+PEGGO_NETWORK_NONCE = Gauge("peggo_network_nonce", "Injective network current peggo nonce")
 PEGGO_ORCHESTRATOR_NONCE = Gauge("peggo_orchestrator_nonce", "Peggo orchestrator nonce", ["orchestrator_address"])
 PEGGO_ORCHESTRATOR_BALANCE= Gauge("peggo_orchestrator_balance", "Peggo orchestrator INJ balance", ["orchestrator_address"])
 
@@ -29,18 +30,21 @@ def request_json(url: str) -> dict:
 def process_request():
     peggo_state = request_json(f"{NODE_URL}/peggy/v1/module_state")
     network_nonce = int(peggo_state["state"]["last_observed_nonce"])
-    orchestrator_nonce = int(peggo_state["last_claim_event"]["ethereum_event_nonce"])
+    PEGGO_NETWORK_NONCE.set(network_nonce)
 
-    inj_balance_request = request_json(f"{NODE_URL}/cosmos/bank/v1beta1/balances/{ORCHESTRATOR_ADDR}/by_denom?denom=inj")
-    inj_balance = int(inj_balance_request["balance"]["amount"])
-    inj_balance = float(inj_balance) / 10**18
+    for address in ORCHESTRATOR_ADDR_ARRAY:
+        orchestrator_request = request_json(f"{NODE_URL}/peggy/v1/oracle/event/{address}")
+        orchestrator_nonce = int(orchestrator_request["last_claim_event"]["ethereum_event_nonce"])
 
-    event_lag = network_nonce - orchestrator_nonce
+        inj_balance_request = request_json(f"{NODE_URL}/cosmos/bank/v1beta1/balances/{address}/by_denom?denom=inj")
+        inj_balance = int(inj_balance_request["balance"]["amount"])
+        inj_balance = float(inj_balance) / 10**18
 
-    PEGGO_EVENT_LAG.labels(ORCHESTRATOR_ADDR).set(event_lag)
-    PEGGO_NETWORK_NONCE.labels(ORCHESTRATOR_ADDR).set(network_nonce)
-    PEGGO_ORCHESTRATOR_NONCE.labels(ORCHESTRATOR_ADDR).set(orchestrator_nonce)
-    PEGGO_ORCHESTRATOR_BALANCE.labels(ORCHESTRATOR_ADDR).set(inj_balance)
+        event_lag = network_nonce - orchestrator_nonce
+
+        PEGGO_EVENT_LAG.labels(address).set(event_lag)
+        PEGGO_ORCHESTRATOR_NONCE.labels(address).set(orchestrator_nonce)
+        PEGGO_ORCHESTRATOR_BALANCE.labels(address).set(inj_balance)
 
 
 def main():
@@ -54,6 +58,6 @@ def main():
 if __name__ == "__main__":
     print(f"Polling {NODE_URL} every {POLL_SECONDS} seconds")
     print(f"On port {HTTP_PORT}")
-    print(f"Orchestator {ORCHESTRATOR_ADDR}")
+    print(f"Orchestator {ORCHESTRATOR_ADDR_STR}")
 
     main()
