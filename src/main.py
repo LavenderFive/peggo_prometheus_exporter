@@ -9,7 +9,7 @@ from retry import retry
 load_dotenv()
 NODE_URL = os.getenv("NODE_URL")
 ORCHESTRATOR_ADDR_STR = os.getenv("ORCHESTRATOR_ADDRESS")
-ORCHESTRATOR_ADDR_ARRAY = ORCHESTRATOR_ADDR_STR.split(',') if ORCHESTRATOR_ADDR_STR else []
+ORCHESTRATOR_ADDR_ARRAY = ORCHESTRATOR_ADDR_STR.split(",") if ORCHESTRATOR_ADDR_STR else []
 POLL_SECONDS = int(os.getenv("POLL_SECONDS"))
 HTTP_PORT = int(os.getenv("HTTP_PORT"))
 
@@ -17,7 +17,10 @@ HTTP_PORT = int(os.getenv("HTTP_PORT"))
 PEGGO_EVENT_LAG = Gauge("peggo_event_lag", "Peggo event lag", ["orchestrator_address"])
 PEGGO_NETWORK_NONCE = Gauge("peggo_network_nonce", "Injective network current peggo nonce")
 PEGGO_ORCHESTRATOR_NONCE = Gauge("peggo_orchestrator_nonce", "Peggo orchestrator nonce", ["orchestrator_address"])
-PEGGO_ORCHESTRATOR_BALANCE= Gauge("peggo_orchestrator_balance", "Peggo orchestrator INJ balance", ["orchestrator_address"])
+PEGGO_ORCHESTRATOR_BALANCE = Gauge(
+    "peggo_orchestrator_balance", "Peggo orchestrator INJ balance", ["orchestrator_address"]
+)
+
 
 @retry(delay=10, tries=3)
 def request_json(url: str) -> dict:
