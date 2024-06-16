@@ -4,6 +4,7 @@ import time
 
 from dotenv import load_dotenv
 from prometheus_client import start_http_server, Gauge
+from retry import retry
 
 load_dotenv()
 NODE_URL = os.getenv("NODE_URL")
@@ -17,16 +18,21 @@ PEGGO_NETWORK_NONCE = Gauge("peggo_network_nonce", "Injective network current pe
 PEGGO_ORCHESTRATOR_NONCE = Gauge("peggo_orchestrator_nonce", "Peggo orchestrator nonce", ["orchestrator_address"])
 PEGGO_ORCHESTRATOR_BALANCE= Gauge("peggo_orchestrator_balance", "Peggo orchestrator INJ balance", ["orchestrator_address"])
 
+@retry(delay=10, tries=3)
+def request_json(url: str) -> dict:
+    r = requests.get(url)
+    if r.status_code == 200:
+        return r.json()
+    return {}
+
 
 def process_request():
-    r = requests.get(f"{NODE_URL}/peggy/v1/module_state")
-    network_nonce = int(r.json()["state"]["last_observed_nonce"])
+    peggo_state = request_json(f"{NODE_URL}/peggy/v1/module_state")
+    network_nonce = int(peggo_state["state"]["last_observed_nonce"])
+    orchestrator_nonce = int(peggo_state["last_claim_event"]["ethereum_event_nonce"])
 
-    r = requests.get(f"{NODE_URL}/peggy/v1/oracle/event/{ORCHESTRATOR_ADDR}")
-    orchestrator_nonce = int(r.json()["last_claim_event"]["ethereum_event_nonce"])
-
-    r = requests.get(f"{NODE_URL}/cosmos/bank/v1beta1/balances/{ORCHESTRATOR_ADDR}/by_denom?denom=inj")
-    inj_balance = int(r.json()["balance"]["amount"])
+    inj_balance_request = request_json(f"{NODE_URL}/cosmos/bank/v1beta1/balances/{ORCHESTRATOR_ADDR}/by_denom?denom=inj")
+    inj_balance = int(inj_balance_request["balance"]["amount"])
     inj_balance = float(inj_balance) / 10**18
 
     event_lag = network_nonce - orchestrator_nonce
