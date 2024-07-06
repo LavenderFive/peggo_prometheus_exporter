@@ -32,6 +32,10 @@ def request_json(url: str) -> dict:
 
 def process_request():
     peggo_state = request_json(f"{NODE_URL}/peggy/v1/module_state")
+
+    if not peggo_state:
+        return
+
     network_nonce = int(peggo_state["state"]["last_observed_nonce"])
     PEGGO_NETWORK_NONCE.set(network_nonce)
 
